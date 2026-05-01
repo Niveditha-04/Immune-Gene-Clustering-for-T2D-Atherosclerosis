@@ -114,24 +114,6 @@ The r > 0.5 threshold (vs. the common r > 0.3) was chosen deliberately to reduce
 | Immune gene annotation | ImmPort · GO:0002376 (biomaRt) |
 | Data wrangling | tidyverse (dplyr · tidyr · readr) |
 
----
-
-## Repository Structure
-Immune-Gene-Clustering-for-T2D-Atherosclerosis/
-├── analysis/
-│ ├── 01_differential_expression.R # limma DE: KO_HFD vs WT_HFD
-│ ├── 02_pca_clustering.R # PCA + Mclust (G=1–9, VVV model)
-│ ├── 03_statistical_filtering.R # Triple FDR filter (KW + Wilcoxon + Spearman)
-│ ├── 04_immune_annotation.R # ImmPort / GO:0002376 gene mapping
-│ ├── 05_hub_gene_ranking.R # STRING network hub analysis
-│ └── 06_visualizations.R # Heatmap + violin plots
-├── data/ # Input CSVs (gitignored)
-│ ├── expression_matrix.csv
-│ ├── gene_annotation.csv
-│ ├── cluster_assignments.csv
-│ └── immune_gene_reference.csv
-├── outputs/ # Generated figures and result CSVs
-└── README.md
 
 ---
 ## Setup & Run
