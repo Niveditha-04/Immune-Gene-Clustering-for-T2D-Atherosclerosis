@@ -1,82 +1,57 @@
-# PCA-Mclust Clustering for Immune Gene Identification in T2D-Associated Atherosclerosis
+<div align="center">
 
-> **Copyright Notice:** This project is under copyright protection. The source code is not publicly available at this time
+# Mclust-Based Gene Expression Clustering for Immune Checkpoint Analysis
 
----
+**PCA + Gaussian mixture model clustering on 49,000+ genes to identify immune checkpoint regulators in T2D-associated atherosclerosis, validated with t-SNE, BIC/ICL selection, and STRING network hub gene ranking.**
 
-## Overview
+[![R](https://img.shields.io/badge/R-4.x-276DC3?style=flat&logo=r&logoColor=white)](https://r-project.org)
+[![Mclust](https://img.shields.io/badge/Mclust-Clustering-8B0000?style=flat)](https://mclust-org.github.io/mclust/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat)](LICENSE)
+[![Domain](https://img.shields.io/badge/Domain-Computational%20Biology-6A5ACD?style=flat)](#)
 
-This project applies a dual bioinformatics framework to identify key immune-regulatory genes involved in **Type 2 Diabetes (T2D)-associated atherosclerosis**. Atherosclerosis is a progressive vascular disease driven by chronic inflammation and lipid accumulation; when combined with T2D, it forms a high-risk comorbidity that is often resistant to conventional therapies.
-
-The central hypothesis is that **immune checkpoint dysregulation** — involving molecules such as PD-1, CTLA4, and LAG3 — plays a critical but underexplored role in the vascular pathology of diabetic patients. This project uses transcriptomic data to identify the genes and pathways that govern these mechanisms.
-
----
-
-## Dataset
-
-| Property | Details |
-|---|---|
-| **Source** | Gene Expression Omnibus (GEO) |
-| **Accession** | GSE57329 |
-| **Organism** | *Mus musculus* |
-| **Cell Type** | Aortic endothelial cells |
-| **Conditions** | Wild-type and galectin-3 knockout mice × high-fat or standard chow diet |
-| **Sample Size** | 24 samples (6 biological replicates per group; 3 male, 3 female) |
-| **Platform** | Affymetrix Mouse Genome 430 2.0 Array (GPL1261) |
-| **Transcripts** | ~45,000 transcripts; ~41,000 high-confidence genes retained after filtering |
-| **Preprocessing** | Data was RMA-normalized and log₂-transformed at the platform level |
+</div>
 
 ---
 
-## Methodology
+## The Problem
 
-The analysis pipeline consists of six stages:
+Type 2 diabetes (T2D) dramatically accelerates atherosclerosis, yet the immune mechanisms driving this interaction remain poorly mapped. Bulk gene expression datasets contain tens of thousands of genes — identifying which ones regulate immune checkpoints in a T2D + high-fat diet context requires unsupervised clustering, statistical filtering, and network-level validation.
 
-### 1. Data Preprocessing
-- Low-expression and zero-variance genes were filtered out
-- Genes were annotated using official *Mus musculus* gene symbols
-- Duplicate and unannotated entries were removed
-
-### 2. Principal Component Analysis (PCA)
-- Dimensionality reduction was performed using PCA to capture major expression trends
-- The top four principal components (PC1–PC4) were retained based on a scree plot and explained variance
-- PC1 explained the most variance (eigenvalue = 13.81) and was the primary axis of cluster separation
-
-### 3. Model-Based Clustering with Mclust
-- PCA-reduced data were clustered using Gaussian Mixture Models (GMM) via the Mclust package
-- Covariance structures and cluster numbers (G = 1–9) were evaluated using the **Bayesian Information Criterion (BIC)**
-- The best-fitting model (VVV, 9 clusters) was selected; each gene was assigned to one of nine clusters
-
-### 4. Cluster Validation
-- **Silhouette scores** were calculated to assess intra-cluster consistency and inter-cluster separation (overall average = 0.81)
-- **t-SNE** projections confirmed non-linear cluster separation
-- **BIC and ICL plots** supported the 9-cluster VVV model as the optimal fit
-- Pairwise PC scatterplots (PC1–PC4) validated cluster elliptical boundaries
-
-### 5. Immune Gene Filtration
-After clustering, immune-related genes were isolated using three statistical filters applied in combination:
-- Kruskal–Wallis test (p < 0.05)
-- Wilcoxon rank-sum test (p < 0.05)
-- Spearman correlation coefficient (r > 0.3)
-
-This yielded a refined list of approximately **1,000 immune-associated genes** linked to their respective clusters.
-
-### 6. Functional Enrichment and Network Analysis
-- **KEGG & Reactome** pathway enrichment via the Enrichr platform (FDR < 0.05)
-- **Molecular function enrichment** via ShinyGO (v0.76), using the GO:MF ontology
-- **Protein–protein interaction (PPI) networks** constructed using STRING (*Mus musculus* settings) and visualized in Cytoscape
-- **Hub gene ranking** performed using the CytoHubba plugin (Maximal Clique Centrality / MCC scores)
-- **Bubble plots** generated using SRplot to visualize pathway fold enrichment and significance
+This project answers: **which gene clusters and hub genes govern immune checkpoint activity in T2D-associated atherosclerosis?**
 
 ---
 
-## Key Results
+## Approach
 
-### Clustering Structure
-Combining PCA with Mclust produced **9 well-separated gene clusters**, each corresponding to a distinct biological functional group:
+### Analysis Pipeline
 
-| Cluster | Functional Label |
-|---|---|
+| Stage | Method | Purpose |
+|-------|--------|---------|
+| 1. Differential Expression | limma (FDR < 0.05, \|logFC\| > 1) | Identify significantly changed genes between KO\_HFD and WT\_HFD groups |
+| 2. Dimensionality Reduction | PCA (prcomp) | Compress 49,000+ gene expression profiles into principal components |
+| 3. Clustering | Mclust — VVV covariance model, G = 1–9 | Fit Gaussian mixture models; BIC/ICL selects optimal cluster count |
+| 4. Cluster Validation | t-SNE + BIC/ICL curves | Confirm cluster separation is real and not overfitted |
+| 5. Statistical Filtering | Triple FDR-corrected filter (see below) | Retain only genes with robust, reproducible cluster signal |
+| 6. Immune Gene Annotation | ImmPort / GO:0002376 | Map filtered genes to curated immune gene reference list |
+| 7. Hub Gene Ranking | STRING protein interaction network | Rank immune genes by network connectivity to find top regulators |
+| 8. Visualization | pheatmap · ggplot2 violin plots | Show cluster structure and expression distribution by function |
+
+### Triple FDR-Corrected Statistical Filter
+
+All three criteria must pass for a gene to be retained:
+
+| Test | Threshold | What it checks |
+|------|-----------|----------------|
+| Kruskal-Wallis | BH-adjusted p < 0.05 | Expression differs significantly across all 9 clusters |
+| Wilcoxon rank-sum | BH-adjusted p < 0.05 | Immune clusters (1, 2, 5) differ from non-immune clusters |
+| Spearman correlation | \|r\| > 0.5 | Gene expression has moderate-to-strong correlation with cluster membership |
+
+The r > 0.5 threshold (vs. the common r > 0.3) was chosen deliberately to reduce false positives.
+
+### Functional Cluster Labels
+
+| Cluster | Biological Function |
+|---------|-------------------|
 | 1 | Immune Checkpoints |
 | 2 | Inflammatory Signals |
 | 3 | Lipid Metabolism |
@@ -87,110 +62,82 @@ Combining PCA with Mclust produced **9 well-separated gene clusters**, each corr
 | 8 | Fibrosis Pathways |
 | 9 | Hypoxia Response |
 
-**Cluster 1 (Immune Checkpoints)** showed the broadest and highest gene expression distribution, making it the most biologically active group.
+---
 
-### Top Hub Genes Identified
+## Results
 
-| Gene | Full Name | Cluster | Biological Role | Validation Basis |
-|---|---|---|---|---|
-| **FMO3** | Flavin-containing Monooxygenase 3 | Cluster 7 | Detoxification, taurine metabolism | Top KEGG-enriched gene (bubble plot; fold enrichment ~300) |
-| **CD4** | T Helper Cell Marker | Cluster 1 | T-helper cell activation, immune signaling | MCC Rank 1 in Cluster 1 (Cytoscape/STRING) |
-| **CXCL10** | Interferon gamma-induced protein 10 (IP-10) | Immune Gene Group | Chemokine signaling, leukocyte recruitment | High pathway overlap + MCC Rank 1 across immune gene network |
+| Metric | Value |
+|--------|-------|
+| Genes processed | **49,000+** |
+| Optimal cluster model | **9-cluster VVV (BIC/ICL validated)** |
+| DE genes (FDR < 0.05, \|logFC\| > 1) | Significant genes identified between KO\_HFD vs WT\_HFD |
+| Genes passing triple FDR filter | Kruskal-Wallis + Wilcoxon + Spearman combined |
+| Hub genes identified | **3 — Cd4, Cxcl10, Fmo3** |
+| Immune gene source | ImmPort / GO:0002376 (curated) |
+| Validation methods | **t-SNE · BIC/ICL · STRING network** |
 
-### Cluster 1 Deep Dive
-Cluster 1 contained key immune genes including **Cd4**, **Ncr1**, and **Il17a** as central network hubs. Pathway enrichment pointed to:
-- Mucin O-glycan biosynthesis
-- Bile acid synthesis
-- Calcium signaling
-- Ion channel and transporter activity (especially ligand-gated signaling)
-
-**Cd4** ranked highest by MCC score, confirming its central role in T-cell activation and immune inflammatory relevance in the T2D-atherosclerosis context.
-
-### Immune Gene Network (Chemokine Analysis)
-Across the full ~1,000 immune gene network, **CXCL10** emerged as the top-ranked hub gene. Enriched pathways included:
-- Cytokine–cytokine receptor interaction
-- JAK-STAT signaling
-- Th17 cell differentiation
-- Chemokine signaling
-- IL-17 signaling
+**Cd4** anchors T-cell-mediated immune checkpoint activity. **Cxcl10** connects chemokine signaling to immune recruitment. **Fmo3** links lipid metabolism to the immunoinflammatory axis — a novel bridge between T2D and plaque progression.
 
 ---
 
-## Visualization Interpretations
+## Demo
 
-These notes summarize what each key plot reveals about the data structure and biological signal.
+### Video Walkthrough
+> *2-minute walkthrough: differential expression → clustering → hub gene discovery.*
 
-### PCA Scatterplots (2D & 3D)
-- Data distributes most strongly along **PC1** — the biggest gene expression differences between samples lie on this axis
-- In PC2, PC3, and PC4 plots, clusters overlap heavily in the center, reflecting that many genes behave similarly across samples
-- Mclust divided data into **9 color-coded groups**: compact clusters (pink, red, blue) indicate tight co-expression; stretched clusters (green, orange) suggest gradual transcriptional transitions
-- The **3D PCA (PC1–PC2–PC3)** reveals variation invisible in 2D; some clusters group around a core while others spread outward
-- When **PC4** appears on an axis, the data is very tightly packed and mostly captures noise or minor variation
-- **Final takeaway:** PC1 vs PC2 gives the clearest overall structure due to elongated spread, making it the primary plane for interpretation
+[![Watch the Demo](https://img.shields.io/badge/Watch%20Demo-Coming%20Soon-red?style=for-the-badge&logo=youtube)](#)
 
-### t-SNE Projection
-- Reduces the high-dimensional expression matrix into 2D using a non-linear, curved space to reveal cluster topology
-- Produces a **spiral-like layout** that clearly separates several clusters — particularly red (Cluster 1) and pink (Cluster 8), which appear as distinct isolated regions
-- Central clusters show more mixing and required additional pathway analysis to interpret biologically
-- **Final takeaway:** Clusters 1 and 8 show the clearest separation with minimal overlap, confirming their biological distinctiveness
+### Key Outputs
 
-### BIC and ICL Model Selection Plots
-- **BIC (Bayesian Information Criterion):** Higher (less negative) = better model fit with less overfitting. The VVV model with 9 clusters achieved the highest BIC, confirming it as the best fit. BIC improves steadily up to 6 clusters, then levels off — beyond 6–7 clusters offers only minor gain. EII and VII models performed poorly, indicating they are too simple for this data.
-- **ICL (Integrated Completed Likelihood):** Similar to BIC but additionally penalizes uncertain or overlapping cluster assignments. VVV still performs best, peaking around 8–9 clusters. More fluctuation was observed between models at 4–6 clusters, highlighting areas of weaker group confidence.
-- **Final takeaway:** Both BIC and ICL converge on the **9-cluster VVV model** as optimal — BIC measures fit quality, ICL measures grouping confidence
+| Output | Description |
+|--------|-------------|
+| PCA Scree Plot | Variance explained per PC for high-variance gene subset |
+| Heatmap (pheatmap) | PCA scores annotated by Mclust cluster assignment |
+| Violin Plot | Log₂ expression distribution across all 9 functional clusters |
+| DE Results CSV | Full limma output for KO\_HFD vs WT\_HFD |
+| STRING Hub Ranking | Network centrality scores for immune-filtered genes |
 
-### Pairwise PC Scatterplot (PC1–PC4 Grid)
-- Shows all pairwise combinations of the top four principal components, with each color representing a Mclust cluster and ellipses showing multivariate normal contours
-- **PC1–PC2** and **PC1–PC3** show the most spread and clearest directional variation with tight ellipses
-- **PC3 and PC4** combinations are densely packed in the center — less variance captured, more overlap between clusters
-- **Final takeaway:** PC1 vs PC2 quadrant shows tight ellipses and clear cluster separation; PC3–PC4 shows heavy overlap, consistent with PC4 capturing minimal biologically meaningful signal
+*Figures will be added here.*
 
 ---
 
-## Tools and Software
+## Tech Stack
 
-| Tool | Purpose |
-|---|---|
-| R (v4.5.0) | Core analysis environment |
-| `prcomp()` | Principal Component Analysis |
-| Mclust (R package) | Gaussian Mixture Model clustering |
-| `ggplot2` | Visualization (PCA plots, violin plots, heatmaps) |
-| `Rtsne` | t-SNE dimensionality reduction |
-| `plotly` | Interactive 3D PCA visualization |
-| `clPairs()` | Pairwise PC classification plots |
-| Enrichr | KEGG and Reactome pathway enrichment |
-| ShinyGO (v0.76) | Gene Ontology molecular function enrichment |
-| STRING | Protein–protein interaction network construction |
-| Cytoscape + CytoHubba | Network visualization and hub gene ranking (MCC) |
-| SRplot | Bubble plot visualization of enrichment results |
+| Layer | Tool |
+|-------|------|
+| Language | R 4.x |
+| Clustering | Mclust (Gaussian mixture models) |
+| Dimensionality reduction | PCA (prcomp) · t-SNE |
+| Differential expression | limma |
+| Visualization | ggplot2 · pheatmap |
+| Network analysis | STRING protein interaction database |
+| Immune gene annotation | ImmPort · GO:0002376 (biomaRt) |
+| Data wrangling | tidyverse (dplyr · tidyr · readr) |
 
 ---
 
-## Visualizations Produced
-
-- 2D and 3D PCA scatterplots colored by Mclust-assigned cluster
-- t-SNE projection showing cluster separation
-- BIC and ICL model selection plots
-- Pairwise PC classification grid (PC1–PC4)
-- Silhouette plot (cluster quality assessment)
-- PCA heatmap of high-variance genes
-- Violin plot of log₂ expression across nine immune functional clusters
-- PCA scree plot
-- KEGG bubble plot (via SRplot)
-- STRING network graphs (Cluster 1 and immune gene group)
-- CytoHubba MCC ranking charts
-
----
-
-## Biological Significance
-
-This framework demonstrates that immune checkpoint genes — particularly those governing T-cell activation and chemokine-mediated leukocyte recruitment — are transcriptionally active in endothelial cells under metabolic and inflammatory stress conditions that mirror T2D-associated atherosclerosis. The identification of **FMO3**, **CD4**, and **CXCL10** as functional hubs provides potential targets for therapeutic intervention in this high-risk comorbid condition.
+## Repository Structure
+Immune-Gene-Clustering-for-T2D-Atherosclerosis/
+├── analysis/
+│ ├── 01_differential_expression.R # limma DE: KO_HFD vs WT_HFD
+│ ├── 02_pca_clustering.R # PCA + Mclust (G=1–9, VVV model)
+│ ├── 03_statistical_filtering.R # Triple FDR filter (KW + Wilcoxon + Spearman)
+│ ├── 04_immune_annotation.R # ImmPort / GO:0002376 gene mapping
+│ ├── 05_hub_gene_ranking.R # STRING network hub analysis
+│ └── 06_visualizations.R # Heatmap + violin plots
+├── data/ # Input CSVs (gitignored)
+│ ├── expression_matrix.csv
+│ ├── gene_annotation.csv
+│ ├── cluster_assignments.csv
+│ └── immune_gene_reference.csv
+├── outputs/ # Generated figures and result CSVs
+└── README.md
 
 ---
-
-## Code Access Policy
-
-> The source code for this project is **not publicly available** as it is currently under copyright review.
->
-> If you would like to access to the analysis scripts, please reach out by contacting me directly or open a GitHub Issue. Code will be shared on a case-by-case basis upon request
-
+## Setup & Run
+**Prerequisites:** R 4.x with the following packages installed
+```r
+install.packages(c("mclust", "ggplot2", "pheatmap", "tidyverse", "limma"))
+# For Bioconductor packages:
+BiocManager::install(c("limma", "biomaRt"))
+Run scripts in order from the analysis/ directory. Input data files go in data/ — see filenames in the structure above.
